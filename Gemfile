@@ -45,6 +45,6 @@ end
 # Trade Copier dependencies
 gem "bcrypt", "~> 3.1"
 gem "rack-cors"
-gem "sidekiq", "~> 7.2"
+gem "sidekiq", "~> 8.0"
 gem "sidekiq-cron", "~> 1.12"
 gem "redis", ">= 5.0"
