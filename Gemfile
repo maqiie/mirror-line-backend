@@ -46,7 +46,7 @@ end
 gem "bcrypt", "~> 3.1"
 gem "rack-cors"
 gem "sidekiq", "~> 7.2"
-gem "sidekiq-cron", "~> 1.12"
+gem "sidekiq-cron", "~> 2.4"
 gem "redis", ">= 5.0"
 
 gem "resend", "~> 1.19"
