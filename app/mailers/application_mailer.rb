@@ -1,4 +1,4 @@
 class ApplicationMailer < ActionMailer::Base
-  default from: ENV.fetch("GMAIL_USERNAME", "markpaul.dev@gmail.com")
+  default from: "Mirrorline <onboarding@resend.dev>"
   layout "mailer"
 end
