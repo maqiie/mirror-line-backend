@@ -1,4 +1,4 @@
 class ApplicationMailer < ActionMailer::Base
-  default from: "Mirrorline <onboarding@resend.dev>"
+  default from: "Mirrorline <notifications@mail.mirrorline.jnt.co.tz>"
   layout "mailer"
 end
