@@ -1,5 +1,5 @@
 class CopyLink < ApplicationRecord
-  LOT_MODES = %w[fixed multiplier balance_ratio risk_pct].freeze
+  LOT_MODES = %w[fixed multiplier balance_ratio risk_pct equity_auto].freeze
 
   belongs_to :user
   belongs_to :master_account, class_name: "TradingAccount"

@@ -72,7 +72,7 @@ module Api
           current_account.update_column(:last_reconciled_at, Time.current)
           ReconcileJob.perform_async(current_account.id)
         rescue StandardError => e
-          Rails.logger.warn("[copier] could not enqueue reconcile: #{e.class}: #{e.message}")
+          Rails.logger.warn("[copier] could not enqueue reconcile: #{e.class}")
         end
       end
     end

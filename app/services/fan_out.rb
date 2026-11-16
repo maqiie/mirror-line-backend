@@ -59,11 +59,30 @@ class FanOut
         next
       end
 
+      if @event.event_type == "open" && skipped_pending_placement?(link)
+        next
+      end
+
       mapping = TradeMapping.active.find_by(copy_link_id: link.id, master_ticket: @event.master_ticket)
+
       if mapping.nil?
+        volume = @event.volume
+
+        if link.lot_mode == "equity_auto"
+          begin
+            volume = EquityAutoLotSizer.call(slave)
+          rescue EquityAutoLotSizer::Error => e
+            create_command(
+              link, nil, status: "skipped",
+              message: "automatic lot sizing failed: #{e.message}"
+            )
+            next
+          end
+        end
+
         mapping = TradeMapping.create!(
           trading_account: slave, copy_link: link, master_ticket: @event.master_ticket,
-          symbol: @event.symbol, side: @event.side, volume: @event.volume,
+          symbol: @event.symbol, side: @event.side, volume: volume,
           state: @event.event_type == "pending_place" ? "pending_requested" : "open_requested"
         )
       elsif @event.event_type == "open" && TradeMapping::PENDING_STATES.include?(mapping.state)
@@ -72,10 +91,30 @@ class FanOut
         next                                       # duplicate, already copied
       end
 
-      create_command(link, mapping)
+      if link.lot_mode == "equity_auto"
+        create_command(
+          link, mapping, volume: mapping.volume,
+          lot_mode: "fixed", lot_value: mapping.volume
+        )
+      else
+        create_command(link, mapping)
+      end
     end
   rescue ActiveRecord::RecordNotUnique
     nil
+  end
+
+  def skipped_pending_placement?(link)
+    Command.joins(:trade_event).exists?(
+      copy_link_id: link.id,
+      trading_account_id: link.slave_account_id,
+      action: "pending_place",
+      status: "skipped",
+      trade_events: {
+        trading_account_id: @master.id,
+        master_ticket: @event.master_ticket
+      }
+    )
   end
 
   def follow_up(link, states)
@@ -97,7 +136,10 @@ class FanOut
     nil
   end
 
-  def create_command(link, mapping, status: "pending", message: nil)
+  def create_command(
+    link, mapping, status: "pending", message: nil,
+    volume: @event.volume, lot_mode: link.lot_mode, lot_value: link.lot_value
+  )
     Command.create!(
       trading_account: link.slave_account,
       trade_event: (@only_link ? nil : @event),   # replays must not collide with the original event row
@@ -108,12 +150,12 @@ class FanOut
       result_message: message,
       symbol: @event.symbol,
       side: @event.side,
-      volume: @event.volume,
+      volume: volume,
       price: @event.price,
       sl: @event.sl,
       tp: @event.tp,
-      lot_mode: link.lot_mode,
-      lot_value: link.lot_value,
+      lot_mode: lot_mode,
+      lot_value: lot_value,
       master_balance: @event.master_balance,
       reverse: link.reverse,
       max_slippage: link.max_slippage,

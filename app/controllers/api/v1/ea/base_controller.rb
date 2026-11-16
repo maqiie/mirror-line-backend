@@ -4,6 +4,7 @@ module Api
       # Base for endpoints called by the MT4/MT5 Expert Advisors.
       # Auth: header X-Account-Token (the raw token shown once when the account was created).
       class BaseController < ActionController::API
+        before_action :set_no_store_header
         before_action :authenticate_account!
 
         rescue_from ActionController::ParameterMissing do |e|
@@ -11,6 +12,11 @@ module Api
         end
 
         private
+
+        def set_no_store_header
+          response.headers["Cache-Control"] = "no-store"
+          response.headers["Pragma"] = "no-cache"
+        end
 
         attr_reader :current_account
 

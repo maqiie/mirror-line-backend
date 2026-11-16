@@ -1,7 +1,7 @@
 module Api
   module V1
     class OrdersController < BaseController
-      # POST /api/v1/orders { account_ids, symbol, side, volume, sl, tp }
+      # POST /api/v1/orders { account_ids, symbol, side, volume, price, sl, tp }
       #
       # If the master is among the selected accounts, followers that actively copy that master
       # are NOT sent a second, direct order: they receive the master's trade through their link
@@ -11,18 +11,27 @@ module Api
         accounts = current_user.trading_accounts.where(id: ids).to_a
         raise ActiveRecord::RecordNotFound if accounts.empty? || accounts.size != ids.size
 
+        allowed_sides = %w[buy sell buy_limit sell_limit buy_stop sell_stop]
+        side = params[:side].to_s
+        return render json: { error: "Unsupported order type." }, status: :unprocessable_entity unless allowed_sides.include?(side)
+
+        pending = %w[buy_limit sell_limit buy_stop sell_stop].include?(side)
+        if pending && (params[:price].blank? || !params[:price].to_d.positive?)
+          return render json: { error: "A valid entry price is required for pending orders." }, status: :unprocessable_entity
+        end
+
         lot_mode = params[:lot_mode].presence || "fixed"
         lot_value = params[:lot_value].presence || (lot_mode == "fixed" ? params[:volume] : nil)
 
-        unless %w[fixed risk_pct].include?(lot_mode)
+        unless %w[fixed risk_pct equity_auto].include?(lot_mode)
           return render json: {
-            error: "Website orders support only fixed and risk_pct sizing."
+            error: "Website orders support fixed, risk_pct and equity_auto sizing."
           }, status: :unprocessable_entity
         end
 
         fixed_value = params[:volume].presence || lot_value
 
-        if lot_value.blank? || lot_value.to_d <= 0
+        if lot_mode != "equity_auto" && (lot_value.blank? || lot_value.to_d <= 0)
           return render json: { error: "A valid lot_value is required." }, status: :unprocessable_entity
         end
 
@@ -51,8 +60,9 @@ module Api
           ManualTrade.open(
             account: account,
             symbol: params[:symbol],
-            side: params[:side],
+            side: side,
             lot_value: account_value,
+            entry_price: pending ? params[:price] : nil,
             lot_mode: account_mode,
             sl: params[:sl],
             tp: params[:tp],
