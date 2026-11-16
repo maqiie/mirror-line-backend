@@ -67,6 +67,15 @@ class ManualTrade
     )
   end
 
+  # Modify SL/TP on one broker position using its raw MT5 ticket.
+  def self.modify_ticket(account, ticket, symbol:, side:, volume:, sl:, tp:, batch_key: SecureRandom.hex(6))
+    Command.create!(
+      trading_account: account, action: "modify_ticket", target_ticket: ticket.to_i,
+      symbol: symbol.to_s, side: side.to_s, volume: volume || 0,
+      sl: sl, tp: tp, batch_key: batch_key
+    )
+  end
+
   def self.close_mapping(mapping)
     raise Error, "trade is not open" unless mapping.holding?
     mapping.enqueue_close! || raise(Error, "a close is already in progress")

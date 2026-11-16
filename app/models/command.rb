@@ -1,5 +1,5 @@
 class Command < ApplicationRecord
-  ACTIONS = %w[open add close partial_close modify pending_place pending_modify pending_delete close_all close_ticket].freeze
+  ACTIONS = %w[open add close partial_close modify pending_place pending_modify pending_delete close_all close_ticket modify_ticket].freeze
   STATUSES = %w[pending sent executed skipped failed expired].freeze
   FINAL_STATUSES = %w[executed skipped failed expired].freeze
   OPENING_ACTIONS = %w[open add pending_place].freeze
@@ -45,9 +45,9 @@ class Command < ApplicationRecord
 
   # One pipe-separated line, 17 fields. The EAs parse exactly this layout:
   # id|action|key|symbol|side|volume|price|sl|tp|lot_mode|lot_value|master_balance|reverse|ratio|created_epoch|max_slippage|symbol_suffix
-  # `key` is the trade-mapping id, except for close_ticket where it is the raw broker ticket.
+  # `key` is the trade-mapping id, except for direct-ticket actions which use the raw broker ticket.
   def to_wire
-    key = action == "close_ticket" ? target_ticket.to_i : trade_mapping_id.to_i
+    key = %w[close_ticket modify_ticket].include?(action) ? target_ticket.to_i : trade_mapping_id.to_i
     [
       id, action, key, clean(symbol), clean(side),
       num(volume), num(price), num(sl), num(tp),

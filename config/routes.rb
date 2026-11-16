@@ -40,6 +40,7 @@ Rails.application.routes.draw do
 
       post "positions/close_all",     to: "positions#close_all"
       post "positions/:ticket/close", to: "positions#close"
+      post "positions/:ticket/modify", to: "positions#modify"
       post "orders",                  to: "orders#create"
       put  "copier",                  to: "copier#update"
 
