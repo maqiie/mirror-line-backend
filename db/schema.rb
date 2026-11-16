@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_05_000001) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_12_161455) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -75,12 +75,46 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_05_000001) do
     t.index ["user_id"], name: "index_copy_links_on_user_id"
   end
 
+  create_table "email_verification_tokens", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "token_digest", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "used_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["token_digest"], name: "index_email_verification_tokens_on_token_digest", unique: true
+    t.index ["user_id", "used_at"], name: "index_email_verification_tokens_on_user_id_and_used_at"
+    t.index ["user_id"], name: "index_email_verification_tokens_on_user_id"
+  end
+
   create_table "equity_samples", force: :cascade do |t|
     t.bigint "trading_account_id", null: false
     t.datetime "at", null: false
     t.decimal "equity", precision: 20, scale: 2, null: false
     t.index ["trading_account_id", "at"], name: "index_equity_samples_on_trading_account_id_and_at"
     t.index ["trading_account_id"], name: "index_equity_samples_on_trading_account_id"
+  end
+
+  create_table "password_reset_tokens", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "token_digest", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "used_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["token_digest"], name: "index_password_reset_tokens_on_token_digest", unique: true
+    t.index ["user_id", "used_at"], name: "index_password_reset_tokens_on_user_id_and_used_at"
+    t.index ["user_id"], name: "index_password_reset_tokens_on_user_id"
+  end
+
+  create_table "rate_limit_counters", force: :cascade do |t|
+    t.string "key_digest", null: false
+    t.datetime "window_started_at", null: false
+    t.integer "request_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key_digest"], name: "index_rate_limit_counters_on_key_digest", unique: true
+    t.check_constraint "request_count >= 0", name: "rate_limit_counters_request_count_nonnegative"
   end
 
   create_table "trade_events", force: :cascade do |t|
@@ -122,7 +156,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_05_000001) do
     t.string "close_reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["copy_link_id", "master_ticket"], name: "idx_mappings_one_active_per_link_ticket", unique: true, where: "((copy_link_id IS NOT NULL) AND ((state)::text = ANY ((ARRAY['pending_requested'::character varying, 'pending'::character varying, 'open_requested'::character varying, 'open'::character varying])::text[])))"
+    t.index ["copy_link_id", "master_ticket"], name: "idx_mappings_one_active_per_link_ticket", unique: true, where: "((copy_link_id IS NOT NULL) AND ((state)::text = ANY (ARRAY[('pending_requested'::character varying)::text, ('pending'::character varying)::text, ('open_requested'::character varying)::text, ('open'::character varying)::text])))"
     t.index ["copy_link_id"], name: "index_trade_mappings_on_copy_link_id"
     t.index ["trading_account_id", "state"], name: "index_trade_mappings_on_trading_account_id_and_state"
     t.index ["trading_account_id"], name: "index_trade_mappings_on_trading_account_id"
@@ -161,12 +195,43 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_05_000001) do
     t.index ["user_id"], name: "index_trading_accounts_on_user_id"
   end
 
+  create_table "user_session_refresh_tokens", force: :cascade do |t|
+    t.bigint "user_session_id", null: false
+    t.string "token_digest", null: false
+    t.datetime "consumed_at"
+    t.datetime "expires_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["token_digest"], name: "index_user_session_refresh_tokens_on_token_digest", unique: true
+    t.index ["user_session_id", "consumed_at"], name: "index_refresh_tokens_on_session_and_consumed"
+    t.index ["user_session_id"], name: "index_user_session_refresh_tokens_on_user_session_id"
+  end
+
+  create_table "user_sessions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "access_token_digest", null: false
+    t.string "refresh_token_digest", null: false
+    t.datetime "access_expires_at", null: false
+    t.datetime "refresh_expires_at", null: false
+    t.datetime "revoked_at"
+    t.datetime "last_used_at"
+    t.string "ip_address"
+    t.string "user_agent"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["access_token_digest"], name: "index_user_sessions_on_access_token_digest", unique: true
+    t.index ["refresh_token_digest"], name: "index_user_sessions_on_refresh_token_digest", unique: true
+    t.index ["user_id", "revoked_at"], name: "index_user_sessions_on_user_id_and_revoked_at"
+    t.index ["user_id"], name: "index_user_sessions_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email", null: false
     t.string "password_digest", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "copier_paused", default: false, null: false
+    t.datetime "email_verified_at"
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
@@ -177,9 +242,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_05_000001) do
   add_foreign_key "copy_links", "trading_accounts", column: "master_account_id", on_delete: :cascade
   add_foreign_key "copy_links", "trading_accounts", column: "slave_account_id", on_delete: :cascade
   add_foreign_key "copy_links", "users", on_delete: :cascade
+  add_foreign_key "email_verification_tokens", "users", on_delete: :cascade
   add_foreign_key "equity_samples", "trading_accounts", on_delete: :cascade
+  add_foreign_key "password_reset_tokens", "users"
   add_foreign_key "trade_events", "trading_accounts", on_delete: :cascade
   add_foreign_key "trade_mappings", "copy_links", on_delete: :nullify
   add_foreign_key "trade_mappings", "trading_accounts", on_delete: :cascade
   add_foreign_key "trading_accounts", "users", on_delete: :cascade
+  add_foreign_key "user_session_refresh_tokens", "user_sessions"
+  add_foreign_key "user_sessions", "users"
 end

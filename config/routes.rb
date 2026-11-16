@@ -13,7 +13,21 @@ Rails.application.routes.draw do
 
       # ---------- Dashboard (Mirrorline) - header: Authorization: Bearer <token> ----------
       post "session",   to: "auth#login"
+      delete "session", to: "auth#logout"
       post "auth/login", to: "auth#login"
+      post "auth/register", to: "auth#register"
+      get  "auth/verify-email", to: "auth#verify_email"
+      post "auth/verification/resend", to: "auth#resend_verification"
+      post "auth/refresh", to: "auth#refresh"
+      post "auth/password/forgot", to: "auth#forgot_password"
+      post "auth/password/reset", to: "auth#reset_password"
+
+      get    "sessions",     to: "auth#sessions"
+      delete "sessions",     to: "auth#revoke_all_sessions"
+      delete "sessions/:id", to: "auth#revoke_session"
+
+      patch "password/change", to: "auth#change_password"
+
       get  "dashboard", to: "dashboard#show"
 
       resources :trading_accounts, only: %i[create update destroy] do

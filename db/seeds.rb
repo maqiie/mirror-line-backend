@@ -4,6 +4,7 @@
 # Dev convenience: tokens are re-issued on every run (the old ones stop working).
 user = User.find_or_initialize_by(email: ENV.fetch("SEED_EMAIL", "admin@example.com"))
 user.password = ENV.fetch("SEED_PASSWORD", "change-me-please") if user.new_record?
+user.email_verified_at ||= Time.current
 user.save!
 
 def seed_account(user, attrs)
